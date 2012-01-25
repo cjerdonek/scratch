@@ -4,8 +4,10 @@ Build-helper script.
 """
 
 import datetime
+import fnmatch
 import logging
 import os
+import re
 import shutil
 import sys
 import textwrap
@@ -25,7 +27,8 @@ TF_PATH = r"C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\tf"
 # output files can be browsed easily using a web browser.  In thiS case, the
 # virtual directory should be configured to have "directory browsing" enabled.
 
-DEFAULT_LOGGING_LEVEL = logging.DEBUG
+#DEFAULT_LOGGING_LEVEL = logging.DEBUG
+DEFAULT_LOGGING_LEVEL = logging.INFO
 
 YAML_CONFIG_PATH = "config.yaml"
 NO_DATA_GIF_SOURCE_PATH = "no_data_found.gif"
@@ -66,13 +69,18 @@ def exit_with_error(message):
     print "\nExecute the command with the --help or -h option for usage info."
     sys.exit(1)
 
+def read(path):
+    with open(path) as f:
+        text = f.read()
+    
+    return text
 
 def execute_command(cmd):
     """
     Execute a command-line command and return the screen output as a string.
 
     """
-    print "Executing: %s" % repr(cmd)
+    _log.debug("Executing: %s" % repr(cmd))
     with win32pipe.popen(cmd) as f:
         lines = f.readlines()
 
@@ -96,6 +104,41 @@ def get_most_recent(path):
 
     return changeset_number, date
 
+def get_assembly_info_paths(root_path):
+
+    paths = []
+    for root, dirnames, filenames in os.walk(root_path):
+        for filename in fnmatch.filter(filenames, 'AssemblyInfo.*'):
+            path = os.path.join(root, filename)
+            paths.append(path)
+
+    return paths
+
+def get_project_directory(info_path):
+    dir_path = os.path.dirname(info_path)
+
+    parent_dir, dir_name = os.path.split(dir_path)
+    
+    if dir_name.lower() in ('properties', 'my project'):
+        return parent_dir
+
+    return dir_path
+
+def get_assembly_version(info_path):
+    text = read(info_path)
+    pattern = '^(?:\[assembly|<Assembly): AssemblyVersion\("(?P<version>.*)".*$'
+    m = re.search(pattern, text, re.MULTILINE)
+    return m.group('version')
+    
+def get_project_info(info_path):
+    version = get_assembly_version(info_path)
+    project_dir = get_project_directory(info_path)
+    parent_dir, dir_name = os.path.split(project_dir)
+    label = os.path.join(os.path.basename(parent_dir), dir_name)
+    
+    changeset_number, date = get_most_recent(project_dir)
+    return date, version, label
+    
 def main(sys_argv):
     """
     Generate new monitor graphs for the user-provided date range.
@@ -104,7 +147,13 @@ def main(sys_argv):
     configure_logging(DEFAULT_LOGGING_LEVEL)
 
     path = "C:\TFS\CJ2010\ChicagoApplicationDevelopment\dev"
-    print get_most_recent(path)
+    #print get_most_recent(path)
+    info_paths = get_assembly_info_paths(path)
+    
+    for info_path in info_paths:
+        info = get_project_info(info_path)
+        date, version, label = info
+        print date.strftime("%Y-%m-%d"), version.ljust(10), label
     exit()
     #config = read_yaml_config(path=YAML_CONFIG_PATH)
 
