@@ -27,7 +27,3 @@ Table of contents:
     * 3.5. Tag the commit
 
 
-1. Background
--------------
-
-This document explains how to distribute Pizza via the Python Package Index,
