@@ -1,3 +1,5 @@
+Table of contents:
+
 1.  Background
 2.  One-time setup
     * 2.1. Set up PyPI user accounts
@@ -11,3 +13,6 @@
       * 3.1.5. Update `long_description` file
       * 3.1.6. Make sure tests pass
     * 3.2. Merge to release branch, if necessary
+    * 3.3. Register version on PyPI
+    * 3.4. Upload version to PyPI
+    * 3.5. Tag the commit
